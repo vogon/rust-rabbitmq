@@ -1,0 +1,11 @@
+[package]
+
+name = "rabbitmq"
+version = "0.1.0"
+authors = [ "https://github.com/Antti" ]
+
+[[lib]]
+
+name = "rabbitmq"
+crate_type = ["rlib"]
+path = "src/lib.rs"
