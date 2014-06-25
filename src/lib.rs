@@ -342,7 +342,7 @@ fn str_to_amqp_bytes(string: &String) -> rabbitmqc::amqp_bytes_t {
 
 fn vec_to_amqp_bytes(vec: Vec<u8>) -> rabbitmqc::amqp_bytes_t {
   unsafe {
-    rabbitmqc::Struct_amqp_bytes_t_ { len: vec.len() as ::libc::c_long, bytes: mem::transmute(vec.clone().as_mut_ptr()) }
+    rabbitmqc::Struct_amqp_bytes_t_ { len: vec.len() as ::libc::c_ulong, bytes: mem::transmute(vec.clone().as_mut_ptr()) }
   }
 }
 
