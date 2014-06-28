@@ -215,10 +215,10 @@ impl Connection {
       let req = &mut rabbitmqc::Struct_amqp_queue_declare_t_ {
         ticket :      0,
         queue :       str_to_amqp_bytes(&String::from_str(queue)),
-        passive :     bool::to_bit::<i32>(passive),
-        durable :     bool::to_bit::<i32>(durable),
-        exclusive :   bool::to_bit::<i32>(exclusive),
-        auto_delete : bool::to_bit::<i32>(auto_delete),
+        passive :     passive ? 1 : 0,
+        durable :     durable ? 1 : 0,
+        exclusive :   exclusive ? 1 : 0,
+        auto_delete : auto_delete ? 1 : 0,
         nowait :      0,
         arguments :   args,
       };
@@ -261,7 +261,14 @@ impl Connection {
         Some(prop) => mem::transmute(&prop.to_rabbit()),
         None => std::ptr::null::<rabbitmqc::amqp_basic_properties_t>()
       };
-      rabbitmqc::amqp_basic_publish(self.state, channel.id, str_to_amqp_bytes(&String::from_str(exchange)), str_to_amqp_bytes(&String::from_str(routing_key)), bool::to_bit::<i32>(mandatory), bool::to_bit::<i32>(immediate), props, vec_to_amqp_bytes(body))
+      rabbitmqc::amqp_basic_publish(self.state, 
+        channel.id, 
+        str_to_amqp_bytes(&String::from_str(exchange)), 
+        str_to_amqp_bytes(&String::from_str(routing_key)), 
+        mandatory ? 1 : 0, 
+        immediate ? 1 : 0, 
+        props, 
+        vec_to_amqp_bytes(body))
     }
   }
 
@@ -271,8 +278,13 @@ impl Connection {
         Some(args) => args.to_rabbit(),
         None => (amqp_table{entries: vec!() }).to_rabbit()
       };
-      rabbitmqc::amqp_basic_consume(self.state, channel.id, str_to_amqp_bytes(&String::from_str(queue)), str_to_amqp_bytes(&String::from_str(consumer_tag)),
-        bool::to_bit::<i32>(no_local), bool::to_bit::<i32>(no_ack), bool::to_bit::<i32>(exclusive), args)
+      rabbitmqc::amqp_basic_consume(self.state, 
+        channel.id, 
+        str_to_amqp_bytes(&String::from_str(queue)), 
+        str_to_amqp_bytes(&String::from_str(consumer_tag)),
+        no_local ? 1 : 0, 
+        no_ack ? 1 : 0, 
+        exclusive ? 1 : 0, args)
     }
   }
 
