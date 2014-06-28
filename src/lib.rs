@@ -3,6 +3,7 @@
 #![crate_id="rabbitmq#1.0"]
 #![license = "BSD"]
 #![allow(non_camel_case_types)]
+#![feature(unsafe_destructor)]
 
 extern crate libc;
 use std::bool;
