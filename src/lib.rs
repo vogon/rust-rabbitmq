@@ -215,10 +215,10 @@ impl Connection {
       let req = &mut rabbitmqc::Struct_amqp_queue_declare_t_ {
         ticket :      0,
         queue :       str_to_amqp_bytes(&String::from_str(queue)),
-        passive :     passive ? 1 : 0,
-        durable :     durable ? 1 : 0,
-        exclusive :   exclusive ? 1 : 0,
-        auto_delete : auto_delete ? 1 : 0,
+        passive :     if passive { 1 } else { 0 },
+        durable :     if durable { 1 } else { 0 },
+        exclusive :   if exclusive { 1 } else { 0 },
+        auto_delete : if auto_delete { 1 } else { 0 },
         nowait :      0,
         arguments :   args,
       };
@@ -265,8 +265,8 @@ impl Connection {
         channel.id, 
         str_to_amqp_bytes(&String::from_str(exchange)), 
         str_to_amqp_bytes(&String::from_str(routing_key)), 
-        mandatory ? 1 : 0, 
-        immediate ? 1 : 0, 
+        if mandatory { 1 } else { 0 },
+        if immediate { 1 } else { 0 }, 
         props, 
         vec_to_amqp_bytes(body))
     }
@@ -282,9 +282,10 @@ impl Connection {
         channel.id, 
         str_to_amqp_bytes(&String::from_str(queue)), 
         str_to_amqp_bytes(&String::from_str(consumer_tag)),
-        no_local ? 1 : 0, 
-        no_ack ? 1 : 0, 
-        exclusive ? 1 : 0, args)
+        if no_local { 1 } else { 0 },
+        if no_ack { 1 } else { 0 },
+        if exclusive { 1 } else { 0 },
+        args)
     }
   }
 
