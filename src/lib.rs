@@ -45,8 +45,14 @@ impl TableField for u32 {
 }
 
 #[deriving(Show)]
-pub struct amqp_message {
+pub struct Message {
   pub body: Vec<u8>,
+}
+
+#[deriving(Show)]
+pub struct Envelope {
+  pub message: Message,
+  pub delivery_tag: u64,
 }
 
 #[deriving(Show)]
@@ -87,7 +93,7 @@ pub struct amqp_basic_properties {
     pub cluster_id: String,
 }
 
-impl amqp_message {
+impl Message {
   pub fn str_body<'a>(&'a self) -> Option<&'a str> {
     std::str::from_utf8(self.body.as_slice())
   }
@@ -289,7 +295,18 @@ impl Connection {
     }
   }
 
-  pub fn consume_message(&self, timeout: Option<rabbitmqc::Struct_timeval>, flags: Option<int>) -> Result<amqp_message, String> {
+  pub fn ack(&self, channel: Channel, delivery_tag: u64, multiple: bool) -> Result<(), ::libc::c_int> {
+    unsafe {
+      let result = rabbitmqc::amqp_basic_ack(self.state,
+        channel.id,
+        delivery_tag,
+        if multiple { 1 } else { 0 });
+
+      if result == 0 { Ok(()) } else { Err(result) }
+    }
+  }
+
+  pub fn consume_message(&self, timeout: Option<rabbitmqc::Struct_timeval>, flags: Option<int>) -> Result<Envelope, String> {
     unsafe {
       let to : *mut rabbitmqc::Struct_timeval = match timeout{
         Some(to) => mem::transmute(&to),
@@ -298,10 +315,19 @@ impl Connection {
       let mut envelope = Vec::with_capacity(std::mem::size_of::<rabbitmqc::Struct_amqp_envelope_t_>());
       let penvelope  = envelope.as_mut_ptr();
       let reply = rabbitmqc::amqp_consume_message(self.state, penvelope, to, flags.unwrap_or(0) as i32);
+
       if reply.reply_type == rabbitmqc::AMQP_RESPONSE_NORMAL {
-        let msg = amqp_message { body: amqp_bytes_to_vec((*penvelope).message.body) };
+        let msg = Message { 
+          body: amqp_bytes_to_vec((*penvelope).message.body) 
+        };
+        
+        let env = Envelope { 
+          message: msg, 
+          delivery_tag: (*penvelope).delivery_tag 
+        };
+        
         destroy_envelope(penvelope);
-        Ok(msg)
+        Ok(env)
       } else {
         destroy_envelope(penvelope);
         Err(reply_to_error(reply))
