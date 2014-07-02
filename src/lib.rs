@@ -28,7 +28,7 @@ pub enum AMQPMethod {
 }
 
 trait TableField {
-  fn value(&self) -> [u64, ..2u];
+  fn value(&self) -> [u32, ..2u];
   fn kind(&self) -> u8;
   fn to_rabbit(&self) -> rabbitmqc::amqp_field_value_t {
     rabbitmqc::Struct_amqp_field_value_t_ { value: unsafe { mem::transmute(self.value()) }, kind: self.kind() }
@@ -36,8 +36,8 @@ trait TableField {
 }
 
 impl TableField for u32 {
-  fn value(&self) -> [u64, ..2u] {
-    [*self as u64, 0]
+  fn value(&self) -> [u32, ..2u] {
+    [*self, 0]
   }
   fn kind(&self) -> u8 {
     'I' as u8
@@ -135,6 +135,7 @@ enum ConnectionState {
 
 pub struct Connection{
   state: rabbitmqc::amqp_connection_state_t,
+  socket: *mut rabbitmqc::amqp_socket_t,
   connection_state: ConnectionState
 }
 
@@ -158,19 +159,19 @@ impl Connection {
       _ => return Err("Error allocating new connection".to_string())
     };
 
-    match socket_type{
+    let socket = match socket_type{
       TcpSocket => match unsafe { rabbitmqc::amqp_tcp_socket_new(state) }{
         ptr if !ptr.is_null() => ptr,
         _ => { return Err("Error creating socket".to_string())}
       }
     };
 
-    Ok(Connection { state: state, connection_state: ConnectionClosed })
+    Ok(Connection { state: state, socket: socket, connection_state: ConnectionClosed })
   }
 
   pub fn socket_open(&mut self, hostname: &str, port: Option<uint>) -> Result<(), (String, i32)> {
     unsafe {
-      match rabbitmqc::amqp_socket_open((*self.state).socket, hostname.to_c_str().unwrap(), port.unwrap_or(5672) as i32){
+      match rabbitmqc::amqp_socket_open(self.socket, hostname.to_c_str().unwrap(), port.unwrap_or(5672) as i32){
         0 => { self.connection_state = ConnectionOpen; Ok(()) },
         code => Err((error_string(code), code))
       }
